@@ -1,0 +1,28 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "debug eval",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["evaluated_results/IM224_WR50_L2-3_P001_D1024-1024_PS-3_AN-1_S0", "patch_core_loader", "--faiss_on_gpu", "--patch_core_paths", "/opt/.pc/patchcore-inspection/snapshots/IM320_WR50_L2-3_P001_D1024-1024_PS-5_AN-3/mvtec_zipper/", "dataset", "--resize", "366", "--imagesize", "320", "-d", "zipper", "mvtec", "/opt/.pc/mvtec"]
+        }
+        ,
+        {
+            "name": "debug train",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["--save_patchcore_model", "--save_segmentation_images", "--log_group", "f1","--log_project", "MVTecAD_Results", "f1", "patch_core", "-b", "wideresnet50", "-le", "layer2", "-le", "layer3", "--anomaly_scorer_num_nn", "1", "sampler", "-p", "0.1", "approx_greedy_coreset", "dataset", "--resize", "366", "--imagesize", "320", "-d", "wood", "mvtec", "/opt/.pc/mvtec"]
+        }
+    ]
+}
