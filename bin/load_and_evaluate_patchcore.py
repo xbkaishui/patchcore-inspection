@@ -3,6 +3,10 @@ import gc
 import logging
 import os
 import sys
+# todo for debug purposes only
+src_path = os.path.join(os.path.dirname(__file__), "../src")
+print(src_path)
+sys.path.append(src_path)
 
 import click
 import numpy as np
@@ -13,6 +17,7 @@ import patchcore.metrics
 import patchcore.patchcore
 import patchcore.sampler
 import patchcore.utils
+from loguru import logger 
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,11 +50,12 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
     )
 
     result_collect = []
-
+    logger.info("methods {}", methods)
     dataloader_iter, n_dataloaders = methods["get_dataloaders_iter"]
     dataloader_iter = dataloader_iter(seed)
     patchcore_iter, n_patchcores = methods["get_patchcore_iter"]
     patchcore_iter = patchcore_iter(device)
+    logger.info("n_dataloaders: {}, n_patchcores: {}".format(n_dataloaders, n_patchcores))
     if not (n_dataloaders == n_patchcores or n_patchcores == 1):
         raise ValueError(
             "Please ensure that #PatchCores == #Datasets or #PatchCores == 1!"
@@ -73,6 +79,7 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
                 PatchCore_list = next(patchcore_iter)
 
             aggregator = {"scores": [], "segmentations": []}
+            logger.info("PatchCore_list {}", PatchCore_list)
             for i, PatchCore in enumerate(PatchCore_list):
                 torch.cuda.empty_cache()
                 LOGGER.info(
@@ -87,6 +94,7 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
                 aggregator["segmentations"].append(segmentations)
 
             scores = np.array(aggregator["scores"])
+            logger.info("scores {}", scores)
             min_scores = scores.min(axis=-1).reshape(-1, 1)
             max_scores = scores.max(axis=-1).reshape(-1, 1)
             scores = (scores - min_scores) / (max_scores - min_scores)
@@ -111,7 +119,9 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
             ]
 
             # Plot Example Images.
+            save_segmentation_images = True
             if save_segmentation_images:
+                logger.info("Saving segmentation images path {}", results_path)
                 image_paths = [
                     x[2] for x in dataloaders["testing"].dataset.data_to_iterate
                 ]
@@ -203,6 +213,7 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
 @click.option("--faiss_num_workers", type=int, default=8)
 def patch_core_loader(patch_core_paths, faiss_on_gpu, faiss_num_workers):
     def get_patchcore_iter(device):
+        logger.info("patch_core_paths {}", patch_core_paths)
         for patch_core_path in patch_core_paths:
             loaded_patchcores = []
             gc.collect()

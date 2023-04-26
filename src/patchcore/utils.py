@@ -80,6 +80,9 @@ def create_storage_folder(
     os.makedirs(main_folder_path, exist_ok=True)
     project_path = os.path.join(main_folder_path, project_folder)
     os.makedirs(project_path, exist_ok=True)
+    import time
+    cur_time = time.strftime("%Y%m%d%H%M%S")
+    group_folder = f'{group_folder}_{cur_time}'
     save_path = os.path.join(project_path, group_folder)
     if mode == "iterate":
         counter = 0

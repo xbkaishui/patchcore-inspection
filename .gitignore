@@ -1,3 +1,9 @@
 .idea/
 __pycache__/
 LabletAnomaly.egg-info/
+nohup.out
+NOTICE
+*.pkl
+*.faiss
+*.csv
+run_results

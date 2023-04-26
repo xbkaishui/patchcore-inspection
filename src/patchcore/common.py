@@ -9,7 +9,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 import torch
 import torch.nn.functional as F
-
+from loguru import logger
 
 class FaissNN(object):
     def __init__(self, on_gpu: bool = False, num_workers: int = 4) -> None:
@@ -90,6 +90,7 @@ class FaissNN(object):
 
     def load(self, filename: str) -> None:
         self.search_index = self._index_to_gpu(faiss.read_index(filename))
+        logger.info("laod file {} done", filename)
 
     def reset_index(self):
         if self.search_index:

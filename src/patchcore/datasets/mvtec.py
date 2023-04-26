@@ -21,6 +21,7 @@ _CLASSNAMES = [
     "transistor",
     "wood",
     "zipper",
+    "bottom",
 ]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
@@ -70,6 +71,10 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.train_val_split = train_val_split
 
         self.imgpaths_per_class, self.data_to_iterate = self.get_image_data()
+        
+        # fix bin run patchcore inference
+        self.transform_std = IMAGENET_STD
+        self.transform_mean = IMAGENET_MEAN
 
         self.transform_img = [
             transforms.Resize(resize),
@@ -159,7 +164,9 @@ class MVTecDataset(torch.utils.data.Dataset):
                 for i, image_path in enumerate(imgpaths_per_class[classname][anomaly]):
                     data_tuple = [classname, anomaly, image_path]
                     if self.split == DatasetSplit.TEST and anomaly != "good":
-                        data_tuple.append(maskpaths_per_class[classname][anomaly][i])
+                        # todo enable later
+                        # data_tuple.append(maskpaths_per_class[classname][anomaly][i])
+                        data_tuple.append(None)
                     else:
                         data_tuple.append(None)
                     data_to_iterate.append(data_tuple)

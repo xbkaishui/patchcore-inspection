@@ -6,6 +6,10 @@ import sys
 import click
 import numpy as np
 import torch
+# todo for debug only
+src_path = os.path.join(os.path.dirname(__file__), "../src")
+print(src_path)
+sys.path.append(src_path)
 
 import patchcore.backbones
 import patchcore.common
@@ -13,6 +17,7 @@ import patchcore.metrics
 import patchcore.patchcore
 import patchcore.sampler
 import patchcore.utils
+from loguru import logger
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,8 +30,8 @@ _DATASETS = {"mvtec": ["patchcore.datasets.mvtec", "MVTecDataset"]}
 @click.option("--seed", type=int, default=0, show_default=True)
 @click.option("--log_group", type=str, default="group")
 @click.option("--log_project", type=str, default="project")
-@click.option("--save_segmentation_images", is_flag=True)
-@click.option("--save_patchcore_model", is_flag=True)
+@click.option("--save_segmentation_images", is_flag=True, default=False)
+@click.option("--save_patchcore_model", is_flag=True, default=True)
 def main(**kwargs):
     pass
 
@@ -47,7 +52,7 @@ def run(
     run_save_path = patchcore.utils.create_storage_folder(
         results_path, log_project, log_group, mode="iterate"
     )
-
+    logger.info("Saving results to: {}".format(run_save_path))
     list_of_dataloaders = methods["get_dataloaders"](seed)
 
     device = patchcore.utils.set_torch_device(gpu)
@@ -179,21 +184,23 @@ def run(
             )["auroc"]
 
             # Compute PRO score & PW Auroc for all images
-            pixel_scores = patchcore.metrics.compute_pixelwise_retrieval_metrics(
-                segmentations, masks_gt
-            )
-            full_pixel_auroc = pixel_scores["auroc"]
+            # pixel_scores = patchcore.metrics.compute_pixelwise_retrieval_metrics(
+            #     segmentations, masks_gt
+            # )
+            # full_pixel_auroc = pixel_scores["auroc"]
+            full_pixel_auroc = 0
 
             # Compute PRO score & PW Auroc only images with anomalies
-            sel_idxs = []
-            for i in range(len(masks_gt)):
-                if np.sum(masks_gt[i]) > 0:
-                    sel_idxs.append(i)
-            pixel_scores = patchcore.metrics.compute_pixelwise_retrieval_metrics(
-                [segmentations[i] for i in sel_idxs],
-                [masks_gt[i] for i in sel_idxs],
-            )
-            anomaly_pixel_auroc = pixel_scores["auroc"]
+            # sel_idxs = []
+            # for i in range(len(masks_gt)):
+            #     if np.sum(masks_gt[i]) > 0:
+            #         sel_idxs.append(i)
+            # pixel_scores = patchcore.metrics.compute_pixelwise_retrieval_metrics(
+            #     [segmentations[i] for i in sel_idxs],
+            #     [masks_gt[i] for i in sel_idxs],
+            # )
+            # anomaly_pixel_auroc = pixel_scores["auroc"]
+            anomaly_pixel_auroc = 0
 
             result_collect.append(
                 {
@@ -210,10 +217,12 @@ def run(
 
             # (Optional) Store PatchCore model for later re-use.
             # SAVE all patchcores only if mean_threshold is passed?
+            save_patchcore_model = True
             if save_patchcore_model:
                 patchcore_save_path = os.path.join(
                     run_save_path, "models", dataset_name
                 )
+                logger.info("Saving PatchCore model to {}".format(patchcore_save_path))
                 os.makedirs(patchcore_save_path, exist_ok=True)
                 for i, PatchCore in enumerate(PatchCore_list):
                     prepend = (
@@ -254,8 +263,8 @@ def run(
 @click.option("--patchoverlap", type=float, default=0.0)
 @click.option("--patchsize_aggregate", "-pa", type=int, multiple=True, default=[])
 # NN on GPU.
-@click.option("--faiss_on_gpu", is_flag=True)
-@click.option("--faiss_num_workers", type=int, default=8)
+@click.option("--faiss_on_gpu", is_flag=True, default=False)
+@click.option("--faiss_num_workers", type=int, default=1)
 def patch_core(
     backbone_names,
     layers_to_extract_from,

@@ -14,6 +14,7 @@ import patchcore.common
 import patchcore.sampler
 
 LOGGER = logging.getLogger(__name__)
+from loguru import logger
 
 
 class PatchCore(torch.nn.Module):
@@ -190,11 +191,15 @@ class PatchCore(torch.nn.Module):
         masks_gt = []
         with tqdm.tqdm(dataloader, desc="Inferring...", leave=False) as data_iterator:
             for image in data_iterator:
+                img_path = None
                 if isinstance(image, dict):
+                    # logger.info("inferring labels: {}", image["is_anomaly"].numpy().tolist())
                     labels_gt.extend(image["is_anomaly"].numpy().tolist())
                     masks_gt.extend(image["mask"].numpy().tolist())
+                    img_path = image["image_path"]
                     image = image["image"]
                 _scores, _masks = self._predict(image)
+                logger.info("image {} inferring scores: {}", img_path, _scores)
                 for score, mask in zip(_scores, _masks):
                     scores.append(score)
                     masks.append(mask)
