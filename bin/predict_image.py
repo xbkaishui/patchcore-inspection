@@ -2,6 +2,7 @@ import contextlib
 import gc
 import logging
 import os
+from pathlib import Path
 import sys
 
 import click
@@ -23,6 +24,7 @@ from torchvision import transforms
 from PyNomaly import loop
 import time
 from loguru import logger
+import cv2
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -60,6 +62,7 @@ class Predictor(object):
         scores, masks = self.patchcore_instance._predict(good_images)
         logger.info("predict good images done")
         self.good_scores = scores
+        self.good_masks = masks
 
     def image_loader(self, img_path):
         """load image, returns cuda tensor"""
@@ -69,10 +72,22 @@ class Predictor(object):
         return image
 
     def predict(self, img_path):
+        file_name = Path(img_path).stem
         model = self.patchcore_instance
         image = self.image_loader(img_path)
+        original_image = image.squeeze().numpy().transpose(1,2,0) * 255
+        cv2.imwrite(f"/tmp/{file_name}.png", original_image)
         start_time = time.time()
         preds, masks = model._predict(image)
+        masks = np.array(masks)
+        logger.info("preds mask shape: {}", masks.shape)
+        min_mask = masks.reshape(-1).min()
+        max_mask = masks.reshape(-1).max()
+        segmentations = (masks - min_mask) / (max_mask - min_mask)
+        segmentations = np.mean(segmentations, axis=0)
+        segmentations = (segmentations > 0.5).astype(np.uint8) * 255
+        logger.info("preds segmentations shape: {}", segmentations.shape)
+        cv2.imwrite(f"/tmp/{file_name}_seg.png", segmentations)
         pred_scores = self.good_scores + preds
         m = loop.LocalOutlierProbability(np.array(pred_scores)).fit()
         prob_scores = m.local_outlier_probabilities
@@ -94,12 +109,14 @@ if __name__ == "__main__":
     imagesize=484
     resize=484
     predictor = Predictor(imagesize=imagesize, resize=resize,
-        patch_core_path="/opt/.pc/patchcore-inspection/run_results/chip_results/botoom_20230426213717/models/mvtec_bottom", 
+        patch_core_path="/opt/.pc/patchcore-inspection/snapshots/chip_f3_bottom", 
         good_image_path="/opt/.pc/mvtec/bottom/test/good")
-    logger.info("start predict good")
-    good_image_path = "/opt/.pc/mvtec/bottom/test/good"
-    predict_dir(predictor, good_image_path)
-    bad_image_path = "/opt/.pc/mvtec/bottom/test/NG"
-    predict_dir(predictor, bad_image_path)
-    # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0028-B.jpg")
-    # logger.info("res: {}", res)
+    # logger.info("start predict good")
+    # good_image_path = "/opt/.pc/mvtec/bottom/test/good"
+    # predict_dir(predictor, good_image_path)
+    # bad_image_path = "/opt/.pc/mvtec/bottom/test/NG"
+    # predict_dir(predictor, bad_image_path)
+    logger.info("start predict")
+    res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0029-B.jpg")
+    res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/old-0100-B.jpg")
+    logger.info("res: {}", res)

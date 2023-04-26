@@ -7,3 +7,4 @@ NOTICE
 *.faiss
 *.csv
 run_results
+snapshots
