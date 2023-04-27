@@ -95,10 +95,33 @@ class Predictor(object):
         pred_class = "NG" if confidence > 0.5 else "Good"
         confidence = 1 - confidence
         pred_time = (time.time() - start_time) * 1000
-        return {"class": pred_class, "good_probability": confidence, "time_taken" : int(pred_time)}
+        result_file = f"/tmp/{file_name}_result.png"
+        merge_mask(f"/tmp/{file_name}.png", f"/tmp/{file_name}_seg.png", result_file=result_file)
+        return {"class": pred_class, "good_probability": confidence, "time_taken" : int(pred_time), "result_file": result_file}
     
  
 
+
+def merge_mask(img, mask, show_img=False, result_file="result.png"):
+# Create a new image with red color
+    red_color = np.zeros_like(img)
+    red_color[:] = (0, 0, 255)
+
+    # Replace white pixels in the mask with red pixels
+    mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    red_mask = cv2.inRange(mask_rgb, (255, 255, 255), (255, 255, 255))
+    result = cv2.bitwise_and(red_color, red_color, mask=red_mask)
+
+    # Replace black pixels in the mask with black pixels in the original image
+    black_mask = cv2.inRange(mask_rgb, (0, 0, 0), (0, 0, 0))
+    result += cv2.bitwise_and(img, img, mask=black_mask)
+    cv2.imwrite(result_file, result)
+    if show_img:
+        # Display the result
+        cv2.imshow("Result", result)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        
 def predict_dir(predictor, image_dir):
     image_paths = [os.path.join(image_dir, path)for path in os.listdir(image_dir)]
     for img_path in image_paths:
