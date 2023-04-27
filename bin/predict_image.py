@@ -43,7 +43,8 @@ class Predictor(object):
         )
 
         transform_img = [
-            transforms.Resize(resize),
+            # resize to box size
+            transforms.Resize([resize, resize]),
             transforms.CenterCrop(imagesize),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
