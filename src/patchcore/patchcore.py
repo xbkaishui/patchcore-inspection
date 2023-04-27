@@ -199,7 +199,7 @@ class PatchCore(torch.nn.Module):
                     img_path = image["image_path"]
                     image = image["image"]
                 _scores, _masks = self._predict(image)
-                logger.info("image {} inferring scores: {}", img_path, _scores)
+                # logger.info("image {} inferring scores: {}", img_path, _scores)
                 for score, mask in zip(_scores, _masks):
                     scores.append(score)
                     masks.append(mask)

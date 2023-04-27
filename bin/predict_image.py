@@ -33,7 +33,7 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 class Predictor(object):
 
     def __init__(self, imagesize=224, resize=256, patch_core_path:str=None, good_image_path:str=None, 
-                 good_image_load_size=6, **kwargs):
+                 good_image_load_size=10, **kwargs):
         # set device to gpu 0 
         self.device = patchcore.utils.set_torch_device([0])
         self.nn_method = patchcore.common.FaissNN(False, 8)
@@ -72,7 +72,7 @@ class Predictor(object):
         image = image.unsqueeze(0)
         return image
 
-    def predict(self, img_path):
+    def predict(self, img_path, bad_mask_threshold=0.7, bad_confidence_threshold=0.5):
         file_name = Path(img_path).stem
         model = self.patchcore_instance
         image = self.image_loader(img_path)
@@ -86,14 +86,14 @@ class Predictor(object):
         max_mask = masks.reshape(-1).max()
         segmentations = (masks - min_mask) / (max_mask - min_mask)
         segmentations = np.mean(segmentations, axis=0)
-        segmentations = (segmentations > 0.5).astype(np.uint8) * 255
+        segmentations = (segmentations > bad_mask_threshold).astype(np.uint8) * 255
         logger.info("preds segmentations shape: {}", segmentations.shape)
         cv2.imwrite(f"/tmp/{file_name}_seg.png", segmentations)
         pred_scores = self.good_scores + preds
         m = loop.LocalOutlierProbability(np.array(pred_scores)).fit()
         prob_scores = m.local_outlier_probabilities
         confidence = prob_scores[-1]
-        pred_class = "NG" if confidence > 0.5 else "Good"
+        pred_class = "NG" if confidence > bad_confidence_threshold else "Good"
         confidence = 1 - confidence
         pred_time = (time.time() - start_time) * 1000
         result_file = f"/tmp/{file_name}_result.png"
@@ -103,7 +103,9 @@ class Predictor(object):
  
 
 
-def merge_mask(img, mask, show_img=False, result_file="result.png"):
+def merge_mask(img_path, mask_path, show_img=False, result_file="result.png"):
+    img = cv2.imread(img_path)
+    mask = cv2.imread(mask_path, 0)
 # Create a new image with red color
     red_color = np.zeros_like(img)
     red_color[:] = (0, 0, 255)
@@ -130,8 +132,8 @@ def predict_dir(predictor, image_dir):
         logger.info("img_path {}, res: {}", img_path, res) 
     
 if __name__ == "__main__":
-    imagesize=484
-    resize=484
+    imagesize=256
+    resize=256
     predictor = Predictor(imagesize=imagesize, resize=resize,
         patch_core_path="/opt/.pc/patchcore-inspection/snapshots/chip_f3_bottom", 
         good_image_path="/opt/.pc/mvtec/bottom/test/good")
@@ -141,6 +143,6 @@ if __name__ == "__main__":
     # bad_image_path = "/opt/.pc/mvtec/bottom/test/NG"
     # predict_dir(predictor, bad_image_path)
     logger.info("start predict")
-    res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0029-B.jpg")
+    # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0029-B.jpg")
     res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/old-0100-B.jpg")
     logger.info("res: {}", res)

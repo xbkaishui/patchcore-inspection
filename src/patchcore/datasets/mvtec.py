@@ -77,7 +77,7 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.transform_mean = IMAGENET_MEAN
 
         self.transform_img = [
-            transforms.Resize(resize),
+            transforms.Resize([resize, resize]),
             transforms.CenterCrop(imagesize),
             transforms.ToTensor(),
             transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
@@ -85,7 +85,7 @@ class MVTecDataset(torch.utils.data.Dataset):
         self.transform_img = transforms.Compose(self.transform_img)
 
         self.transform_mask = [
-            transforms.Resize(resize),
+            transforms.Resize([resize, resize]),
             transforms.CenterCrop(imagesize),
             transforms.ToTensor(),
         ]
@@ -150,7 +150,9 @@ class MVTecDataset(torch.utils.data.Dataset):
 
                 if self.split == DatasetSplit.TEST and anomaly != "good":
                     anomaly_mask_path = os.path.join(maskpath, anomaly)
-                    anomaly_mask_files = sorted(os.listdir(anomaly_mask_path))
+                    anomaly_mask_files = []
+                    if os.path.exists(anomaly_mask_path):
+                        anomaly_mask_files = sorted(os.listdir(anomaly_mask_path))
                     maskpaths_per_class[classname][anomaly] = [
                         os.path.join(anomaly_mask_path, x) for x in anomaly_mask_files
                     ]
