@@ -96,8 +96,10 @@ class Predictor(object):
         pred_class = "NG" if confidence > bad_confidence_threshold else "Good"
         confidence = 1 - confidence
         pred_time = (time.time() - start_time) * 1000
-        result_file = f"/tmp/{file_name}_result.png"
-        merge_mask(f"/tmp/{file_name}.png", f"/tmp/{file_name}_seg.png", result_file=result_file)
+        result_file = ""
+        if confidence > bad_confidence_threshold:
+            result_file = f"/tmp/{file_name}_result.png"
+            merge_mask(f"/tmp/{file_name}.png", f"/tmp/{file_name}_seg.png", result_file=result_file)
         return {"class": pred_class, "good_probability": confidence, "time_taken" : int(pred_time), "result_file": result_file}
     
  
@@ -134,9 +136,14 @@ def predict_dir(predictor, image_dir):
 if __name__ == "__main__":
     imagesize=256
     resize=256
+    path_core_model_path = "/opt/.pc/patchcore-inspection/snapshots/chip_f3_bottom"
+    path_core_model_path = "/opt/.pc/patchcore-inspection/snapshots/chip_f1"
+    path_core_model_path = "/opt/.pc/patchcore-inspection/run_results/chip_results/wood_20230427224051/models/mvtec_wood"
+    # good_image_path = "/opt/.pc/mvtec/bottom/test/good"
+    good_image_path = "/opt/.pc/mvtec/wood/test/good"
     predictor = Predictor(imagesize=imagesize, resize=resize,
-        patch_core_path="/opt/.pc/patchcore-inspection/snapshots/chip_f3_bottom", 
-        good_image_path="/opt/.pc/mvtec/bottom/test/good")
+        patch_core_path=path_core_model_path, 
+        good_image_path=good_image_path)
     # logger.info("start predict good")
     # good_image_path = "/opt/.pc/mvtec/bottom/test/good"
     # predict_dir(predictor, good_image_path)
@@ -144,5 +151,7 @@ if __name__ == "__main__":
     # predict_dir(predictor, bad_image_path)
     logger.info("start predict")
     # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0029-B.jpg")
-    res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/old-0100-B.jpg")
+    # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/old-0100-B.jpg")
+    res = predictor.predict("/tmp/1081682654951_.pic.jpg")
+    # res = predictor.predict("/opt/.pc/mvtec/wood/test/NG/old-0087-B.jpg")
     logger.info("res: {}", res)
