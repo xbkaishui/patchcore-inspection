@@ -68,12 +68,12 @@ class Predictor(object):
 
     def image_loader(self, img_path):
         """load image, returns cuda tensor"""
-        image = Image.open(img_path)
+        image = Image.open(img_path).convert('RGB')
         image = self.loader(image).float()
         image = image.unsqueeze(0)
         return image
 
-    def predict(self, img_path, bad_mask_threshold=0.7, bad_confidence_threshold=0.5):
+    def predict(self, img_path, bad_mask_threshold=0.85, bad_confidence_threshold=0.4):
         file_name = Path(img_path).stem
         model = self.patchcore_instance
         image = self.image_loader(img_path)
@@ -82,6 +82,7 @@ class Predictor(object):
         start_time = time.time()
         preds, masks = model._predict(image)
         masks = np.array(masks)
+        logger.info("preds {}", preds)
         logger.info("preds mask shape: {}", masks.shape)
         min_mask = masks.reshape(-1).min()
         max_mask = masks.reshape(-1).max()
@@ -93,6 +94,7 @@ class Predictor(object):
         pred_scores = self.good_scores + preds
         m = loop.LocalOutlierProbability(np.array(pred_scores)).fit()
         prob_scores = m.local_outlier_probabilities
+        logger.info("prob_scores {}", prob_scores)
         confidence = prob_scores[-1]
         pred_class = "NG" if confidence > bad_confidence_threshold else "Good"
         confidence = 1 - confidence
@@ -137,13 +139,10 @@ def predict_dir(predictor, image_dir):
 if __name__ == "__main__":
     imagesize=256
     resize=256
-    path_core_model_path = "/opt/.pc/patchcore-inspection/snapshots/chip_f3_bottom"
-    path_core_model_path = "/opt/.pc/patchcore-inspection/snapshots/chip_f1"
-    path_core_model_path = "/opt/.pc/patchcore-inspection/run_results/chip_results/wood_20230427224051/models/mvtec_wood"
-    path_core_model_path = "/Users/xbkaishui/opensource/cv_hz/patchcore-inspection/data/chip_f3_bottom"
-    # good_image_path = "/opt/.pc/mvtec/bottom/test/good"
-    good_image_path = "/opt/.pc/mvtec/wood/test/good"
-    good_image_path = "/Users/xbkaishui/opensource/cv_hz/patchcore-inspection/data/bottom/test/good"
+    path_core_model_path = "/opt/product/patchcore-inspection/run_results/chip_results/hm_20230524202649/models/mvtec_hm"
+    path_core_model_path = "/opt/product/patchcore-inspection/run_results/chip_results/hm2_20230524210734/models/mvtec_hm2"
+    good_image_path = "/opt/datasets/mvtec/hm/test/good"
+    good_image_path = "/opt/datasets/mvtec/hm2/test/good"
     predictor = Predictor(imagesize=imagesize, resize=resize,
         patch_core_path=path_core_model_path, 
         good_image_path=good_image_path)
@@ -155,6 +154,10 @@ if __name__ == "__main__":
     logger.info("start predict")
     # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/0029-B.jpg")
     # res = predictor.predict("/opt/.pc/mvtec/bottom/test/NG/old-0100-B.jpg")
-    res = predictor.predict("/Users/xbkaishui/opensource/cv_hz/patchcore-inspection/data/bottom/test/NG/0029-B.jpg")
-    # res = predictor.predict("/opt/.pc/mvtec/wood/test/NG/old-0087-B.jpg")
+    # res = predictor.predict("/opt/product/patchcore-inspection/images/test3.pic.jpg")
+    # res = predictor.predict("/opt/datasets/mvtec/hm2/test/NG/5881684933130_.pic.jpg")
+    img_path = "/opt/datasets/mvtec/hm2/test/good/g1.png"
+    if len(sys.argv) > 1:
+        img_path = sys.argv[1]
+    res = predictor.predict(img_path)
     logger.info("res: {}", res)

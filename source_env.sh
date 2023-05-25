@@ -1,1 +1,1 @@
-export PYTHONPATH=$PYTHONPATH:/opt/.pc/patchcore-inspection/src
+export PYTHONPATH=$PYTHONPATH:/opt/product/patchcore-inspection/src
